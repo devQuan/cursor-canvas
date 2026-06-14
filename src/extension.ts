@@ -3,6 +3,7 @@ import { AppPreviewService } from './services/appPreviewService';
 import { GamePreviewService } from './services/gamePreviewService';
 import { MessageBridge } from './services/messageBridge';
 import { TrackDetectionService } from './services/trackDetectionService';
+import { VideoPreviewService } from './services/videoPreviewService';
 import type { CanvasSettings } from './types';
 
 const PANEL_VIEW_TYPE = 'cursorCanvas.panel';
@@ -11,6 +12,7 @@ let activePanel: vscode.WebviewPanel | undefined;
 let trackDetectionService: TrackDetectionService | undefined;
 let appPreviewService: AppPreviewService | undefined;
 let gamePreviewService: GamePreviewService | undefined;
+let videoPreviewService: VideoPreviewService | undefined;
 const messageBridge = new MessageBridge();
 
 function getNonce(): string {
@@ -54,6 +56,7 @@ function getWebviewHtml(
     `script-src 'nonce-${nonce}' 'unsafe-eval'`,
     `style-src ${webview.cspSource} 'nonce-${nonce}' 'unsafe-inline'`,
     `img-src ${webview.cspSource} http://localhost:* http://127.0.0.1:* data: blob:`,
+    `media-src ${webview.cspSource} http://localhost:* http://127.0.0.1:* blob:`,
     `frame-src ${webview.cspSource} http://localhost:* http://127.0.0.1:*`,
     `connect-src http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*`,
   ].join('; ');
@@ -90,14 +93,17 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
   trackDetectionService?.dispose();
   appPreviewService?.dispose();
   gamePreviewService?.dispose();
+  videoPreviewService?.dispose();
 
   trackDetectionService = new TrackDetectionService(context);
   appPreviewService = new AppPreviewService();
   gamePreviewService = new GamePreviewService();
+  videoPreviewService = new VideoPreviewService();
 
   trackDetectionService.setTrackChangeListener((panel, track) => {
     void appPreviewService?.onTrackChanged(panel, track);
     void gamePreviewService?.onTrackChanged(panel, track);
+    void videoPreviewService?.onTrackChanged(panel, track);
   });
 
   const panel = vscode.window.createWebviewPanel(
@@ -126,6 +132,7 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
         void trackDetectionService?.runAutoDetect(panel);
         void appPreviewService?.refresh(panel);
         void gamePreviewService?.refresh(panel);
+        void videoPreviewService?.refresh(panel);
         vscode.window.showInformationMessage('Cursor Canvas: refreshed');
         break;
       case 'OVERRIDE_TRACK':
@@ -133,6 +140,9 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
         break;
       case 'RESET_TO_AUTO':
         void trackDetectionService?.clearManualOverride(panel);
+        break;
+      case 'OPEN_OUTPUT_FILE':
+        void videoPreviewService?.openOutputFile();
         break;
       case 'OPEN_IN_BROWSER':
         void appPreviewService?.openInBrowser(message.port);
@@ -143,6 +153,13 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
           .update(
             'outputFolder',
             message.settings.outputFolder,
+            vscode.ConfigurationTarget.Workspace,
+          );
+        void vscode.workspace
+          .getConfiguration('cursorCanvas')
+          .update(
+            'estimatedFrameCount',
+            message.settings.estimatedFrameCount,
             vscode.ConfigurationTarget.Workspace,
           );
         void vscode.workspace
@@ -172,6 +189,7 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
         });
         void appPreviewService?.refresh(panel);
         void gamePreviewService?.refresh(panel);
+        void videoPreviewService?.refresh(panel);
         break;
       default:
         if (process.env.NODE_ENV === 'development') {
@@ -186,9 +204,11 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
     trackDetectionService?.dispose();
     appPreviewService?.dispose();
     gamePreviewService?.dispose();
+    videoPreviewService?.dispose();
     trackDetectionService = undefined;
     appPreviewService = undefined;
     gamePreviewService = undefined;
+    videoPreviewService = undefined;
     activePanel = undefined;
   });
 
@@ -215,9 +235,11 @@ export function deactivate(): void {
   trackDetectionService?.dispose();
   appPreviewService?.dispose();
   gamePreviewService?.dispose();
+  videoPreviewService?.dispose();
   trackDetectionService = undefined;
   appPreviewService = undefined;
   gamePreviewService = undefined;
+  videoPreviewService = undefined;
   activePanel?.dispose();
   activePanel = undefined;
 }

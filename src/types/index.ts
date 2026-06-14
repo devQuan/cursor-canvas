@@ -35,6 +35,10 @@ export type GamePreviewStatus = 'loading' | 'ready' | 'empty' | 'error';
 
 export type GameViewMode = 'canvas' | 'split' | 'scene';
 
+export type VideoViewMode = 'strip' | 'player';
+
+export type VideoPreviewStatus = 'empty' | 'generating' | 'complete' | 'error';
+
 export type ErrorService =
   | 'trackResolver'
   | 'portDetector'

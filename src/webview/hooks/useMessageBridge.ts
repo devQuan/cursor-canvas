@@ -19,6 +19,9 @@ function handleExtensionMessage(message: ExtensionToWebviewMessage): void {
   switch (message.type) {
     case 'TRACK_CHANGED':
       store.setTrack(message.track, message.mode, message.confidence ?? 'high');
+      if (message.track !== 'video') {
+        store.resetVideoState();
+      }
       break;
     case 'PORT_DETECTED':
       store.setPort(message.port, message.source);
@@ -44,6 +47,26 @@ function handleExtensionMessage(message: ExtensionToWebviewMessage): void {
       store.setSceneObjects(message.objects);
       store.setEngine(message.engine);
       break;
+    case 'FRAME_ADDED':
+      store.addFrame({
+        frameIndex: message.frameIndex,
+        framePath: message.framePath,
+        timestamp: message.timestamp,
+      });
+      break;
+    case 'VIDEO_READY':
+      store.setVideoUrl(message.videoPath);
+      store.setGenerationProgress(message.frameCount, store.generationProgress.total);
+      store.setVideoPreviewStatus('complete');
+      store.setVideoViewMode('player');
+      break;
+    case 'VIDEO_RESET':
+      store.resetVideoState();
+      store.setGenerationProgress(0, message.estimatedFrameCount);
+      if (message.outputDir) {
+        store.setVideoOutputDir(message.outputDir);
+      }
+      break;
     case 'SETTINGS_UPDATED':
       store.setSettings(message.settings);
       break;
@@ -52,6 +75,9 @@ function handleExtensionMessage(message: ExtensionToWebviewMessage): void {
       break;
     case 'ERROR':
       store.setBridgeStatus(`Error (${message.service}): ${message.message}`);
+      if (message.service === 'fileWatcher') {
+        store.setVideoPreviewStatus('error');
+      }
       break;
     default:
       break;

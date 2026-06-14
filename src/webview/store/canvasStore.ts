@@ -10,6 +10,8 @@ import type {
   Track,
   TrackConfidence,
   TrackMode,
+  VideoPreviewStatus,
+  VideoViewMode,
 } from '../../types';
 
 interface CanvasStore {
@@ -26,7 +28,10 @@ interface CanvasStore {
   sceneObjects: SceneObject[];
   frames: Frame[];
   videoUrl: string | null;
+  videoViewMode: VideoViewMode;
+  videoPreviewStatus: VideoPreviewStatus;
   generationProgress: { current: number; total: number };
+  videoOutputDir: string | null;
   gameViewMode: GameViewMode;
   settingsOpen: boolean;
   settings: CanvasSettings;
@@ -41,6 +46,13 @@ interface CanvasStore {
   setSettings: (settings: CanvasSettings) => void;
   setSettingsOpen: (open: boolean) => void;
   setGameViewMode: (mode: GameViewMode) => void;
+  addFrame: (frame: Frame) => void;
+  setVideoUrl: (url: string | null) => void;
+  setVideoViewMode: (mode: VideoViewMode) => void;
+  setVideoPreviewStatus: (status: VideoPreviewStatus) => void;
+  setGenerationProgress: (current: number, total: number) => void;
+  setVideoOutputDir: (outputDir: string | null) => void;
+  resetVideoState: () => void;
 }
 
 const defaultSettings: CanvasSettings = {
@@ -66,7 +78,10 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   sceneObjects: [],
   frames: [],
   videoUrl: null,
+  videoViewMode: 'strip',
+  videoPreviewStatus: 'empty',
   generationProgress: { current: 0, total: 60 },
+  videoOutputDir: null,
   gameViewMode: 'split',
   settingsOpen: false,
   settings: defaultSettings,
@@ -87,7 +102,51 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
       sceneObjects: objects,
       gamePreviewStatus: objects.length > 0 ? 'ready' : 'empty',
     }),
-  setSettings: (settings) => set({ settings }),
+  setSettings: (settings) =>
+    set({
+      settings,
+      generationProgress: {
+        current: 0,
+        total: settings.estimatedFrameCount,
+      },
+    }),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
   setGameViewMode: (mode) => set({ gameViewMode: mode }),
+  addFrame: (frame) =>
+    set((state) => {
+      if (state.frames.some((existing) => existing.frameIndex === frame.frameIndex)) {
+        return state;
+      }
+
+      const frames = [...state.frames, frame].sort(
+        (left, right) => left.frameIndex - right.frameIndex,
+      );
+
+      return {
+        frames,
+        videoPreviewStatus: 'generating',
+        generationProgress: {
+          current: frames.length,
+          total: state.generationProgress.total,
+        },
+      };
+    }),
+  setVideoUrl: (url) => set({ videoUrl: url }),
+  setVideoViewMode: (mode) => set({ videoViewMode: mode }),
+  setVideoPreviewStatus: (status) => set({ videoPreviewStatus: status }),
+  setGenerationProgress: (current, total) =>
+    set({ generationProgress: { current, total } }),
+  setVideoOutputDir: (outputDir) => set({ videoOutputDir: outputDir }),
+  resetVideoState: () =>
+    set((state) => ({
+      frames: [],
+      videoUrl: null,
+      videoViewMode: 'strip',
+      videoPreviewStatus: 'empty',
+      videoOutputDir: null,
+      generationProgress: {
+        current: 0,
+        total: state.settings.estimatedFrameCount,
+      },
+    })),
 }));

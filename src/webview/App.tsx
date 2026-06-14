@@ -6,9 +6,7 @@ import GameCanvas from './components/GamePreview/GameCanvas';
 import GameViewToolbar from './components/GamePreview/GameViewToolbar';
 import ScenePanel from './components/GamePreview/ScenePanel';
 import SettingsPanel from './components/SettingsPanel';
-import FrameStrip from './components/VideoPreview/FrameStrip';
-import ProgressBar from './components/VideoPreview/ProgressBar';
-import VideoPlayer from './components/VideoPreview/VideoPlayer';
+import VideoPreview from './components/VideoPreview/VideoPreview';
 import {
   postToExtension,
   useMessageBridge,
@@ -51,15 +49,7 @@ const App = React.memo(() => {
               <GameViewToolbar />
             </div>
           )}
-          {activeTrack === 'video' && (
-            <div className="flex h-full flex-col">
-              <ProgressBar />
-              <div className="min-h-0 flex-1">
-                <VideoPlayer />
-              </div>
-              <FrameStrip />
-            </div>
-          )}
+          {activeTrack === 'video' && <VideoPreview />}
         </ErrorBoundary>
       </main>
 

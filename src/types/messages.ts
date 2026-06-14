@@ -36,6 +36,11 @@ export type ExtensionToWebviewMessage =
       frameCount: number;
     }
   | {
+      type: 'VIDEO_RESET';
+      estimatedFrameCount: number;
+      outputDir?: string;
+    }
+  | {
       type: 'SCENE_UPDATED';
       objects: SceneObject[];
       engine: GameEngine;
@@ -68,7 +73,8 @@ export type WebviewToExtensionMessage =
   | { type: 'REQUEST_REFRESH' }
   | { type: 'SAVE_SETTINGS'; settings: CanvasSettings }
   | { type: 'PANEL_READY' }
-  | { type: 'OPEN_IN_BROWSER'; port: number };
+  | { type: 'OPEN_IN_BROWSER'; port: number }
+  | { type: 'OPEN_OUTPUT_FILE' };
 
 export type PanelMessage = ExtensionToWebviewMessage | WebviewToExtensionMessage;
 
@@ -86,6 +92,7 @@ export function isWebviewToExtensionMessage(
     type === 'REQUEST_REFRESH' ||
     type === 'SAVE_SETTINGS' ||
     type === 'PANEL_READY' ||
-    type === 'OPEN_IN_BROWSER'
+    type === 'OPEN_IN_BROWSER' ||
+    type === 'OPEN_OUTPUT_FILE'
   );
 }

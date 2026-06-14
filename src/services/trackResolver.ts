@@ -1,6 +1,10 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { Track } from '../types';
+import {
+  DEFAULT_VIDEO_OUTPUT_FOLDER,
+  directoryHasVideoOutput,
+} from './outputDirResolver';
 
 const APP_CONFIG_FILES = [
   'vite.config.ts',
@@ -33,10 +37,13 @@ const VIDEO_CONFIG_FILES = [
   'seedance.config.ts',
 ];
 
-const FRAME_FILE_PATTERN = /^frame_\d+\.(png|jpe?g)$/i;
-const VIDEO_FILE_PATTERN = /\.(mp4|webm)$/i;
-
-const DEFAULT_OUTPUT_DIRS = ['output', 'frames', 'video-output', 'renders'];
+const DEFAULT_OUTPUT_DIRS = [
+  DEFAULT_VIDEO_OUTPUT_FOLDER,
+  'output',
+  'frames',
+  'video-output',
+  'renders',
+];
 
 async function pathExists(targetPath: string): Promise<boolean> {
   try {
@@ -135,14 +142,43 @@ async function hasGameMarkers(workspacePath: string): Promise<boolean> {
   }
 }
 
-async function directoryHasFrameFiles(dirPath: string): Promise<boolean> {
-  const entries = await readDirSafe(dirPath);
-  return entries.some((entry) => FRAME_FILE_PATTERN.test(entry));
-}
 
-async function directoryHasVideoFiles(dirPath: string): Promise<boolean> {
-  const entries = await readDirSafe(dirPath);
-  return entries.some((entry) => VIDEO_FILE_PATTERN.test(entry));
+async function collectVideoDirs(
+  workspacePath: string,
+  outputFolder?: string | null,
+): Promise<string[]> {
+  const dirs = new Set<string>();
+
+  if (outputFolder) {
+    dirs.add(
+      path.isAbsolute(outputFolder)
+        ? outputFolder
+        : path.join(workspacePath, outputFolder),
+    );
+  }
+
+  for (const dirName of DEFAULT_OUTPUT_DIRS) {
+    dirs.add(path.join(workspacePath, dirName));
+  }
+
+  const entries = await readDirSafe(workspacePath);
+  for (const entry of entries) {
+    if (entry.startsWith('.') || entry === 'node_modules') {
+      continue;
+    }
+
+    const nestedRoot = path.join(workspacePath, entry);
+    const stat = await fs.stat(nestedRoot).catch(() => null);
+    if (!stat?.isDirectory()) {
+      continue;
+    }
+
+    for (const dirName of DEFAULT_OUTPUT_DIRS) {
+      dirs.add(path.join(nestedRoot, dirName));
+    }
+  }
+
+  return [...dirs];
 }
 
 async function hasVideoMarkers(
@@ -155,25 +191,10 @@ async function hasVideoMarkers(
     }
   }
 
-  const dirsToCheck = new Set<string>();
-
-  if (outputFolder) {
-    dirsToCheck.add(outputFolder);
-  }
-
-  for (const dirName of DEFAULT_OUTPUT_DIRS) {
-    dirsToCheck.add(path.join(workspacePath, dirName));
-  }
+  const dirsToCheck = await collectVideoDirs(workspacePath, outputFolder);
 
   for (const dir of dirsToCheck) {
-    if (!(await pathExists(dir))) {
-      continue;
-    }
-
-    if (
-      (await directoryHasFrameFiles(dir)) ||
-      (await directoryHasVideoFiles(dir))
-    ) {
+    if (await directoryHasVideoOutput(dir)) {
       return true;
     }
   }
