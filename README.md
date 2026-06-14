@@ -1,27 +1,25 @@
 # Cursor Canvas
 
-Live preview panel for Cursor — see your app, game, or video build in real time inside the editor.
+Live preview panel for Cursor — app, game, and video builds inside the editor.
 
-**GitHub:** https://github.com/devQuan/cursor-canvas  
-**Publisher:** devQuan
-
----
+[![Release](https://img.shields.io/github/v/release/devQuan/cursor-canvas)](https://github.com/devQuan/cursor-canvas/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Features
 
-| Mode | What you get |
-|------|----------------|
-| **App** | Live localhost iframe, port auto-detection, device frames (Web / iPhone / Android / iPad) |
-| **Game** | Three.js canvas + scene graph panel; Unity WebGL and generic iframe support |
-| **Video** | One large live preview while rendering → full video player when output lands |
+| Mode | Preview |
+|------|---------|
+| **App** | Localhost iframe, port detection, device frames (desktop / phone / tablet) |
+| **Game** | Unity WebGL, Godot, Three.js, or generic iframe + optional scene graph |
+| **Video** | Full-panel live frame preview while rendering → video player when output lands |
 
-Auto-detection picks the track from your workspace. Override manually when needed.
-
----
+The panel auto-detects your project type. Override manually when needed. Canvas can auto-open when a workspace loads (`cursorCanvas.autoOpenPanel`).
 
 ## Install
 
-### From VSIX (local)
+**Marketplace** — search **Cursor Canvas** in Extensions (when published).
+
+**Local VSIX:**
 
 ```bash
 git clone https://github.com/devQuan/cursor-canvas.git
@@ -30,57 +28,36 @@ npm install
 npm run reinstall
 ```
 
-Then **Developer: Reload Window** in Cursor.
-
-### From Marketplace
-
-Search **Cursor Canvas** in the Extensions panel (coming soon).
-
----
+Then run **Developer: Reload Window** in Cursor.
 
 ## Usage
 
 1. Open a project in Cursor
 2. `Cmd+Shift+P` → **Open Canvas Panel**
-3. Use **app** / **game** / **video** tabs
-4. On **App**, try the device switcher to check responsive layouts
+3. Switch **app** / **game** / **video** tabs as needed
 
----
-
-## Configuration
+## Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `cursorCanvas.outputFolder` | `null` | Video output folder to watch for frames |
-| `cursorCanvas.estimatedFrameCount` | `60` | Progress bar total frame estimate |
-| `cursorCanvas.portOverride` | `null` | Force a specific dev server port |
-| `cursorCanvas.framePollingIntervalMs` | `1000` | Video output polling interval |
-| `cursorCanvas.sceneGraphPath` | `.cursor-canvas/scene-graph.json` | Game scene graph JSON path |
-| `cursorCanvas.unityWebGlPath` | `null` | Unity WebGL build output folder |
-| `cursorCanvas.autoOpenPanel` | `true` | Open Canvas when a workspace loads |
-
----
+| `cursorCanvas.autoOpenPanel` | `true` | Open panel when workspace loads |
+| `cursorCanvas.outputFolder` | `null` | Video output folder to watch |
+| `cursorCanvas.portOverride` | `null` | Force dev server port |
+| `cursorCanvas.framePollingIntervalMs` | `1000` | Video folder poll interval |
+| `cursorCanvas.sceneGraphPath` | `.cursor-canvas/scene-graph.json` | Game scene graph path |
+| `cursorCanvas.unityWebGlPath` | `null` | Unity WebGL build folder |
+| `cursorCanvas.estimatedFrameCount` | `60` | Frame count hint for video mode |
 
 ## Development
 
 ```bash
-npm run build        # compile extension + webview
-npm test             # Vitest unit, component, integration tests
-npm run lint         # ESLint
-npm run typecheck    # TypeScript
+npm run build      # compile
+npm test           # Vitest
+npm run typecheck
+npm run lint
 ```
 
----
-
-## Project docs
-
-Full lifecycle, architecture, and QA docs live in [`docs/`](./docs/):
-
-- [Lifecycle roadmap](./docs/00-lifecycle-roadmap.md)
-- [QA test plan](./docs/07-qa-test-plan.md)
-- [Launch checklist](./docs/09-launch-and-distribution.md)
-
----
+Contributor docs: [`docs/`](./docs/) — [development](./docs/development.md), [architecture](./docs/architecture.md), [release](./docs/release.md).
 
 ## License
 
