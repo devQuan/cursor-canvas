@@ -6,12 +6,16 @@ module.exports = {
     extend: {
       colors: {
         canvas: {
-          bg: '#1e1e1e',
-          surface: '#252526',
-          border: '#3c3c3c',
-          muted: '#858585',
-          accent: '#007acc',
-          text: '#cccccc',
+          bg: 'var(--canvas-bg)',
+          surface: 'var(--canvas-surface)',
+          panel: 'var(--canvas-panel)',
+          border: 'var(--canvas-border)',
+          muted: 'var(--canvas-muted)',
+          accent: 'var(--canvas-accent)',
+          'accent-soft': 'var(--canvas-accent-soft)',
+          success: 'var(--canvas-success)',
+          error: 'var(--canvas-error)',
+          text: 'var(--canvas-text)',
         },
       },
       fontFamily: {

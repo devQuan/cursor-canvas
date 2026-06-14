@@ -1,6 +1,7 @@
 import React from 'react';
 import { postToExtension } from '../../hooks/useMessageBridge';
 import { useCanvasStore } from '../../store/canvasStore';
+import EmptyState from '../EmptyState';
 import FrameStrip from './FrameStrip';
 import ProgressBar from './ProgressBar';
 import VideoPlayer from './VideoPlayer';
@@ -20,58 +21,45 @@ const VideoPreview = React.memo(() => {
   const videoViewMode = useCanvasStore((state) => state.videoViewMode);
   const videoPreviewStatus = useCanvasStore((state) => state.videoPreviewStatus);
   const videoOutputDir = useCanvasStore((state) => state.videoOutputDir);
+  const setSettingsOpen = useCanvasStore((state) => state.setSettingsOpen);
 
   const showPlayer = videoViewMode === 'player' && Boolean(videoUrl);
   const isEmpty =
     frames.length === 0 && !videoUrl && videoPreviewStatus === 'empty';
 
+  const refresh = (): void => {
+    postToExtension({ type: 'REQUEST_REFRESH' });
+  };
+
   if (isEmpty) {
+    const pathHint = videoOutputDir
+      ? `Watching: ${shortenPath(videoOutputDir)}`
+      : 'Default: .cursor-canvas/video-output (searches nested projects too)';
+
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-sm text-canvas-muted">
-          No frames found yet. Drop <code>frame_0001.png</code> files into your
-          output folder, or set a custom path in settings.
-        </p>
-        {videoOutputDir ? (
-          <p className="font-mono text-xs text-canvas-muted/80">
-            Watching: {shortenPath(videoOutputDir)}
-          </p>
-        ) : (
-          <p className="text-xs text-canvas-muted/80">
-            Default: <code>.cursor-canvas/video-output</code> (searches nested
-            projects too)
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={() => postToExtension({ type: 'REQUEST_REFRESH' })}
-          className="rounded border border-canvas-border px-3 py-1 text-xs hover:bg-canvas-border/40"
-        >
-          Refresh
-        </button>
-      </div>
+      <EmptyState
+        title="No frames yet"
+        description={`Drop frame_0001.png files into your output folder, or configure a custom path in settings. ${pathHint}`}
+        action={{ label: 'Refresh', onClick: refresh }}
+      />
     );
   }
 
   if (videoPreviewStatus === 'error' && frames.length === 0 && !videoUrl) {
+    const pathHint = videoOutputDir
+      ? ` Tried: ${shortenPath(videoOutputDir)}.`
+      : '';
+
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-sm text-red-400">
-          Output folder not found or no frames detected.
-        </p>
-        {videoOutputDir ? (
-          <p className="font-mono text-xs text-canvas-muted/80">
-            Tried: {shortenPath(videoOutputDir)}
-          </p>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => postToExtension({ type: 'REQUEST_REFRESH' })}
-          className="rounded border border-canvas-border px-3 py-1 text-xs hover:bg-canvas-border/40"
-        >
-          Refresh
-        </button>
-      </div>
+      <EmptyState
+        title="Output folder not found"
+        description={`No frames detected.${pathHint} Check settings and try again.`}
+        variant="error"
+        action={{
+          label: 'Open settings',
+          onClick: () => setSettingsOpen(true),
+        }}
+      />
     );
   }
 

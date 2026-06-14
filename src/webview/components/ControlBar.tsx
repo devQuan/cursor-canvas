@@ -26,6 +26,25 @@ const ControlBar = React.memo(({ onRefresh }: ControlBarProps) => {
     postToExtension({ type: 'OVERRIDE_TRACK', track });
   };
 
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    const currentIndex = TRACKS.indexOf(activeTrack);
+    if (currentIndex === -1) {
+      return;
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      handleTrackClick(TRACKS[(currentIndex + 1) % TRACKS.length]);
+    }
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      handleTrackClick(
+        TRACKS[(currentIndex - 1 + TRACKS.length) % TRACKS.length],
+      );
+    }
+  };
+
   const handleBadgeClick = (): void => {
     if (trackMode === 'manual') {
       postToExtension({ type: 'RESET_TO_AUTO' });
@@ -47,6 +66,7 @@ const ControlBar = React.memo(({ onRefresh }: ControlBarProps) => {
           className="flex shrink-0 overflow-hidden rounded border border-canvas-border"
           role="tablist"
           aria-label="Preview track"
+          onKeyDown={handleTabKeyDown}
         >
           {TRACKS.map((track) => {
             const isActive = activeTrack === track;
@@ -56,9 +76,10 @@ const ControlBar = React.memo(({ onRefresh }: ControlBarProps) => {
                 type="button"
                 role="tab"
                 aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
                 onClick={() => handleTrackClick(track)}
                 className={[
-                  'px-3 py-1.5 text-xs font-sans font-medium uppercase tracking-wide transition-colors',
+                  'px-3 py-1.5 text-xs font-sans font-medium uppercase tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-canvas-accent',
                   isActive
                     ? 'bg-canvas-accent text-white'
                     : 'bg-transparent text-canvas-muted hover:bg-canvas-bg hover:text-canvas-text',
