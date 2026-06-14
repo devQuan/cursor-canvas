@@ -27,7 +27,11 @@ export interface CanvasSettings {
   estimatedFrameCount: number;
   portOverride: number | null;
   framePollingIntervalMs: number;
+  sceneGraphPath: string;
+  unityWebGlPath: string | null;
 }
+
+export type GamePreviewStatus = 'loading' | 'ready' | 'empty' | 'error';
 
 export type GameViewMode = 'canvas' | 'split' | 'scene';
 

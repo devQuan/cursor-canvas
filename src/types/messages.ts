@@ -44,6 +44,7 @@ export type ExtensionToWebviewMessage =
       type: 'ENGINE_DETECTED';
       engine: GameEngine;
       port?: number;
+      previewUrl?: string;
     }
   | {
       type: 'SETTINGS_UPDATED';

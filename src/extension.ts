@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { AppPreviewService } from './services/appPreviewService';
+import { GamePreviewService } from './services/gamePreviewService';
 import { MessageBridge } from './services/messageBridge';
 import { TrackDetectionService } from './services/trackDetectionService';
 import type { CanvasSettings } from './types';
@@ -9,6 +10,7 @@ const PANEL_VIEW_TYPE = 'cursorCanvas.panel';
 let activePanel: vscode.WebviewPanel | undefined;
 let trackDetectionService: TrackDetectionService | undefined;
 let appPreviewService: AppPreviewService | undefined;
+let gamePreviewService: GamePreviewService | undefined;
 const messageBridge = new MessageBridge();
 
 function getNonce(): string {
@@ -29,6 +31,9 @@ function getDefaultSettings(): CanvasSettings {
     portOverride: config.get<number | null>('portOverride') ?? null,
     framePollingIntervalMs:
       config.get<number>('framePollingIntervalMs') ?? 1000,
+    sceneGraphPath:
+      config.get<string>('sceneGraphPath') ?? '.cursor-canvas/scene-graph.json',
+    unityWebGlPath: config.get<string | null>('unityWebGlPath') ?? null,
   };
 }
 
@@ -49,7 +54,7 @@ function getWebviewHtml(
     `script-src 'nonce-${nonce}' 'unsafe-eval'`,
     `style-src ${webview.cspSource} 'nonce-${nonce}' 'unsafe-inline'`,
     `img-src ${webview.cspSource} http://localhost:* http://127.0.0.1:* data: blob:`,
-    `frame-src http://localhost:* http://127.0.0.1:*`,
+    `frame-src ${webview.cspSource} http://localhost:* http://127.0.0.1:*`,
     `connect-src http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*`,
   ].join('; ');
 
@@ -69,15 +74,30 @@ function getWebviewHtml(
 </html>`;
 }
 
+function getLocalResourceRoots(
+  context: vscode.ExtensionContext,
+): vscode.Uri[] {
+  const roots = [vscode.Uri.joinPath(context.extensionUri, 'dist')];
+
+  for (const folder of vscode.workspace.workspaceFolders ?? []) {
+    roots.push(folder.uri);
+  }
+
+  return roots;
+}
+
 function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
   trackDetectionService?.dispose();
   appPreviewService?.dispose();
+  gamePreviewService?.dispose();
 
   trackDetectionService = new TrackDetectionService(context);
   appPreviewService = new AppPreviewService();
+  gamePreviewService = new GamePreviewService();
 
   trackDetectionService.setTrackChangeListener((panel, track) => {
     void appPreviewService?.onTrackChanged(panel, track);
+    void gamePreviewService?.onTrackChanged(panel, track);
   });
 
   const panel = vscode.window.createWebviewPanel(
@@ -87,9 +107,7 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
     {
       enableScripts: true,
       retainContextWhenHidden: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(context.extensionUri, 'dist'),
-      ],
+      localResourceRoots: getLocalResourceRoots(context),
     },
   );
 
@@ -107,6 +125,7 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
       case 'REQUEST_REFRESH':
         void trackDetectionService?.runAutoDetect(panel);
         void appPreviewService?.refresh(panel);
+        void gamePreviewService?.refresh(panel);
         vscode.window.showInformationMessage('Cursor Canvas: refreshed');
         break;
       case 'OVERRIDE_TRACK':
@@ -133,11 +152,26 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
             message.settings.portOverride,
             vscode.ConfigurationTarget.Workspace,
           );
+        void vscode.workspace
+          .getConfiguration('cursorCanvas')
+          .update(
+            'sceneGraphPath',
+            message.settings.sceneGraphPath,
+            vscode.ConfigurationTarget.Workspace,
+          );
+        void vscode.workspace
+          .getConfiguration('cursorCanvas')
+          .update(
+            'unityWebGlPath',
+            message.settings.unityWebGlPath,
+            vscode.ConfigurationTarget.Workspace,
+          );
         messageBridge.send(panel, {
           type: 'SETTINGS_UPDATED',
           settings: message.settings,
         });
         void appPreviewService?.refresh(panel);
+        void gamePreviewService?.refresh(panel);
         break;
       default:
         if (process.env.NODE_ENV === 'development') {
@@ -151,8 +185,10 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
     messageDisposable.dispose();
     trackDetectionService?.dispose();
     appPreviewService?.dispose();
+    gamePreviewService?.dispose();
     trackDetectionService = undefined;
     appPreviewService = undefined;
+    gamePreviewService = undefined;
     activePanel = undefined;
   });
 
@@ -178,8 +214,10 @@ export function activate(context: vscode.ExtensionContext): void {
 export function deactivate(): void {
   trackDetectionService?.dispose();
   appPreviewService?.dispose();
+  gamePreviewService?.dispose();
   trackDetectionService = undefined;
   appPreviewService = undefined;
+  gamePreviewService = undefined;
   activePanel?.dispose();
   activePanel = undefined;
 }

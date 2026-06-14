@@ -49,6 +49,16 @@
           "type": "number",
           "default": 1000,
           "description": "Interval for polling video output folder"
+        },
+        "cursorCanvas.sceneGraphPath": {
+          "type": "string",
+          "default": ".cursor-canvas/scene-graph.json",
+          "description": "Relative path to the game scene graph JSON dump"
+        },
+        "cursorCanvas.unityWebGlPath": {
+          "type": "string",
+          "default": null,
+          "description": "Relative path to Unity WebGL build output folder"
         }
       }
     }
@@ -67,6 +77,7 @@
     "@types/node": "^25.9.3",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.170.0",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
@@ -83,6 +94,7 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "three": "^0.170.0",
     "zustand": "^5.0.2"
   }
 }

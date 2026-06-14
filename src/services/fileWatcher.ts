@@ -125,6 +125,30 @@ export class FileWatcher {
     return disposable;
   }
 
+  watchSceneGraph(
+    sceneGraphPath: string,
+    onChange: () => void,
+  ): vscode.Disposable {
+    const debounced = createDebouncedCallback(onChange, DEBOUNCE_MS);
+    const watcher = vscode.workspace.createFileSystemWatcher(sceneGraphPath);
+
+    const trigger = (): void => {
+      debounced.trigger();
+    };
+
+    watcher.onDidCreate(trigger);
+    watcher.onDidChange(trigger);
+    watcher.onDidDelete(trigger);
+
+    const disposable = new vscode.Disposable(() => {
+      debounced.dispose();
+      watcher.dispose();
+    });
+
+    this.disposables.push(disposable);
+    return disposable;
+  }
+
   dispose(): void {
     for (const disposable of this.disposables) {
       disposable.dispose();

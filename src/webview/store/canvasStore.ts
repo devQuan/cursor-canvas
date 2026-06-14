@@ -3,6 +3,7 @@ import type {
   CanvasSettings,
   Frame,
   GameEngine,
+  GamePreviewStatus,
   GameViewMode,
   SceneObject,
   ServerStatus,
@@ -20,6 +21,8 @@ interface CanvasStore {
   portSource: 'config' | 'scan' | null;
   serverStatus: ServerStatus;
   engine: GameEngine;
+  gamePreviewUrl: string | null;
+  gamePreviewStatus: GamePreviewStatus;
   sceneObjects: SceneObject[];
   frames: Frame[];
   videoUrl: string | null;
@@ -32,6 +35,8 @@ interface CanvasStore {
   setPort: (port: number | null, source?: 'config' | 'scan' | null) => void;
   setServerStatus: (status: ServerStatus) => void;
   setEngine: (engine: GameEngine) => void;
+  setGamePreviewUrl: (url: string | null) => void;
+  setGamePreviewStatus: (status: GamePreviewStatus) => void;
   setSceneObjects: (objects: SceneObject[]) => void;
   setSettings: (settings: CanvasSettings) => void;
   setSettingsOpen: (open: boolean) => void;
@@ -43,6 +48,8 @@ const defaultSettings: CanvasSettings = {
   estimatedFrameCount: 60,
   portOverride: null,
   framePollingIntervalMs: 1000,
+  sceneGraphPath: '.cursor-canvas/scene-graph.json',
+  unityWebGlPath: null,
 };
 
 export const useCanvasStore = create<CanvasStore>((set) => ({
@@ -54,6 +61,8 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   portSource: null,
   serverStatus: 'starting',
   engine: 'threejs',
+  gamePreviewUrl: null,
+  gamePreviewStatus: 'loading',
   sceneObjects: [],
   frames: [],
   videoUrl: null,
@@ -67,7 +76,17 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   setPort: (port, source = null) => set({ port, portSource: source }),
   setServerStatus: (status) => set({ serverStatus: status }),
   setEngine: (engine) => set({ engine }),
-  setSceneObjects: (objects) => set({ sceneObjects: objects }),
+  setGamePreviewUrl: (url) =>
+    set({
+      gamePreviewUrl: url,
+      gamePreviewStatus: url ? 'ready' : 'empty',
+    }),
+  setGamePreviewStatus: (status) => set({ gamePreviewStatus: status }),
+  setSceneObjects: (objects) =>
+    set({
+      sceneObjects: objects,
+      gamePreviewStatus: objects.length > 0 ? 'ready' : 'empty',
+    }),
   setSettings: (settings) => set({ settings }),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
   setGameViewMode: (mode) => set({ gameViewMode: mode }),

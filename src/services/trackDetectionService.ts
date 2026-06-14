@@ -132,6 +132,9 @@ export class TrackDetectionService {
       portOverride: config.get<number | null>('portOverride') ?? null,
       framePollingIntervalMs:
         config.get<number>('framePollingIntervalMs') ?? 1000,
+      sceneGraphPath:
+        config.get<string>('sceneGraphPath') ?? '.cursor-canvas/scene-graph.json',
+      unityWebGlPath: config.get<string | null>('unityWebGlPath') ?? null,
     };
   }
 

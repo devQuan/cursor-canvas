@@ -29,6 +29,16 @@ function handleExtensionMessage(message: ExtensionToWebviewMessage): void {
       break;
     case 'ENGINE_DETECTED':
       store.setEngine(message.engine);
+      if (message.previewUrl) {
+        store.setGamePreviewUrl(message.previewUrl);
+      } else if (message.engine === 'threejs') {
+        store.setGamePreviewStatus('loading');
+      } else {
+        store.setGamePreviewStatus('empty');
+      }
+      if (message.port) {
+        store.setPort(message.port, 'config');
+      }
       break;
     case 'SCENE_UPDATED':
       store.setSceneObjects(message.objects);
