@@ -60,7 +60,8 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "vscode:prepublish": "npm run build",
-    "dev:host": "/Applications/Cursor.app/Contents/Resources/app/bin/cursor --extensionDevelopmentPath=\"$PWD\" \"$PWD\""
+    "dev:host": "/Applications/Cursor.app/Contents/Resources/app/bin/cursor --extensionDevelopmentPath=\"$PWD\" \"$PWD\"",
+    "reinstall": "npm run build && npx @vscode/vsce package && /Applications/Cursor.app/Contents/Resources/app/bin/cursor --install-extension ./cursor-canvas-0.1.0.vsix"
   },
   "devDependencies": {
     "@types/node": "^25.9.3",
@@ -80,7 +81,6 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "chokidar": "^3.6.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.2"

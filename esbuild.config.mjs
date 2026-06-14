@@ -10,7 +10,7 @@ const extensionConfig = {
   bundle: true,
   platform: 'node',
   target: 'node18',
-  external: ['vscode', 'chokidar'],
+  external: ['vscode'],
   outfile: 'dist/extension.js',
   format: 'cjs',
   sourcemap: true,

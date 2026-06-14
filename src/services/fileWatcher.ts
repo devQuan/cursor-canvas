@@ -1,4 +1,3 @@
-import chokidar, { type FSWatcher } from 'chokidar';
 import * as vscode from 'vscode';
 
 const DEBOUNCE_MS = 300;
@@ -37,114 +36,99 @@ function createDebouncedCallback(
 }
 
 export class FileWatcher {
-  private workspaceWatcher: FSWatcher | undefined;
-  private frameWatcher: FSWatcher | undefined;
-  private videoWatcher: FSWatcher | undefined;
-  private debouncers: Array<{ dispose: () => void }> = [];
+  private disposables: vscode.Disposable[] = [];
 
   watchWorkspace(
     root: string,
     onChange: () => void,
   ): vscode.Disposable {
-    this.workspaceWatcher?.close();
-
     const debounced = createDebouncedCallback(onChange, DEBOUNCE_MS);
-    this.debouncers.push(debounced);
+    const pattern = new vscode.RelativePattern(root, '**/*');
+    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
-    this.workspaceWatcher = chokidar.watch(root, {
-      ignoreInitial: true,
-      depth: 4,
-      ignored: (watchPath) => shouldIgnorePath(watchPath),
-    });
-
-    this.workspaceWatcher.on('all', () => {
+    const trigger = (uri: vscode.Uri): void => {
+      if (shouldIgnorePath(uri.fsPath)) {
+        return;
+      }
       debounced.trigger();
+    };
+
+    watcher.onDidCreate(trigger);
+    watcher.onDidChange(trigger);
+    watcher.onDidDelete(trigger);
+
+    const disposable = new vscode.Disposable(() => {
+      debounced.dispose();
+      watcher.dispose();
     });
 
-    return new vscode.Disposable(() => {
-      debounced.dispose();
-      void this.workspaceWatcher?.close();
-      this.workspaceWatcher = undefined;
-    });
+    this.disposables.push(disposable);
+    return disposable;
   }
 
   watchFrames(
     outputDir: string,
     onFrame: (framePath: string) => void,
   ): vscode.Disposable {
-    this.frameWatcher?.close();
-
+    const pattern = new vscode.RelativePattern(outputDir, 'frame_*.*');
     let pendingPath: string | undefined;
+
     const debounced = createDebouncedCallback(() => {
       if (pendingPath) {
         onFrame(pendingPath);
         pendingPath = undefined;
       }
     }, DEBOUNCE_MS);
-    this.debouncers.push(debounced);
 
-    this.frameWatcher = chokidar.watch(outputDir, {
-      ignoreInitial: false,
-      depth: 0,
-      ignored: (watchPath) => shouldIgnorePath(watchPath),
-    });
+    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
-    this.frameWatcher.on('add', (filePath) => {
-      const fileName = filePath.split(/[/\\]/).pop() ?? '';
+    watcher.onDidCreate((uri) => {
+      const fileName = uri.fsPath.split(/[/\\]/).pop() ?? '';
       if (!FRAME_FILE_PATTERN.test(fileName)) {
         return;
       }
 
-      pendingPath = filePath;
+      pendingPath = uri.fsPath;
       debounced.trigger();
     });
 
-    return new vscode.Disposable(() => {
+    const disposable = new vscode.Disposable(() => {
       debounced.dispose();
-      void this.frameWatcher?.close();
-      this.frameWatcher = undefined;
+      watcher.dispose();
     });
+
+    this.disposables.push(disposable);
+    return disposable;
   }
 
   watchVideo(
     outputDir: string,
     onVideo: (videoPath: string) => void,
   ): vscode.Disposable {
-    this.videoWatcher?.close();
+    const pattern = new vscode.RelativePattern(outputDir, '*.{mp4,webm}');
+    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
-    this.videoWatcher = chokidar.watch(outputDir, {
-      ignoreInitial: false,
-      depth: 0,
-      ignored: (watchPath) => shouldIgnorePath(watchPath),
-    });
-
-    this.videoWatcher.on('add', (filePath) => {
-      const fileName = filePath.split(/[/\\]/).pop() ?? '';
+    watcher.onDidCreate((uri) => {
+      const fileName = uri.fsPath.split(/[/\\]/).pop() ?? '';
       if (!VIDEO_FILE_PATTERN.test(fileName)) {
         return;
       }
 
-      onVideo(filePath);
+      onVideo(uri.fsPath);
     });
 
-    return new vscode.Disposable(() => {
-      void this.videoWatcher?.close();
-      this.videoWatcher = undefined;
+    const disposable = new vscode.Disposable(() => {
+      watcher.dispose();
     });
+
+    this.disposables.push(disposable);
+    return disposable;
   }
 
   dispose(): void {
-    for (const debouncer of this.debouncers) {
-      debouncer.dispose();
+    for (const disposable of this.disposables) {
+      disposable.dispose();
     }
-    this.debouncers = [];
-
-    void this.workspaceWatcher?.close();
-    void this.frameWatcher?.close();
-    void this.videoWatcher?.close();
-
-    this.workspaceWatcher = undefined;
-    this.frameWatcher = undefined;
-    this.videoWatcher = undefined;
+    this.disposables = [];
   }
 }
