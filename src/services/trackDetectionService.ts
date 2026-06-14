@@ -135,6 +135,7 @@ export class TrackDetectionService {
       sceneGraphPath:
         config.get<string>('sceneGraphPath') ?? '.cursor-canvas/scene-graph.json',
       unityWebGlPath: config.get<string | null>('unityWebGlPath') ?? null,
+      autoOpenPanel: config.get<boolean>('autoOpenPanel') ?? true,
     };
   }
 
@@ -174,8 +175,8 @@ export class TrackDetectionService {
       const selection = await vscode.window.showQuickPick(
         [
           { label: 'App', description: 'Web app / localhost preview', track: 'app' as Track },
-          { label: 'Game', description: 'Three.js, Unity, or game engine', track: 'game' as Track },
-          { label: 'Video', description: 'Frame strip / video generation', track: 'video' as Track },
+          { label: 'Game', description: 'Unity, Godot, web engines, or game server', track: 'game' as Track },
+          { label: 'Video', description: 'Live video preview from output folder', track: 'video' as Track },
         ],
         {
           title: 'Cursor Canvas — could not detect project type',

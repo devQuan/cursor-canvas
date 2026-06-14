@@ -4,7 +4,13 @@ export type TrackMode = 'auto' | 'manual';
 
 export type TrackConfidence = 'high' | 'low';
 
-export type GameEngine = 'threejs' | 'unity-webgl' | 'generic-iframe';
+export type GameEngine =
+  | 'unity-webgl'
+  | 'unity'
+  | 'godot-webgl'
+  | 'godot'
+  | 'threejs'
+  | 'generic-iframe';
 
 export type ServerStatus = 'starting' | 'ready' | 'unreachable';
 
@@ -29,15 +35,23 @@ export interface CanvasSettings {
   framePollingIntervalMs: number;
   sceneGraphPath: string;
   unityWebGlPath: string | null;
+  autoOpenPanel: boolean;
 }
 
 export type GamePreviewStatus = 'loading' | 'ready' | 'empty' | 'error';
 
 export type GameViewMode = 'canvas' | 'split' | 'scene';
 
-export type VideoViewMode = 'strip' | 'player';
+export type VideoViewMode = 'live' | 'player';
 
 export type VideoPreviewStatus = 'empty' | 'generating' | 'complete' | 'error';
+
+export type PreviewDeviceId =
+  | 'desktop'
+  | 'iphone-15'
+  | 'android-phone'
+  | 'ipad-pro'
+  | 'ipad-pro-landscape';
 
 export type ErrorService =
   | 'trackResolver'

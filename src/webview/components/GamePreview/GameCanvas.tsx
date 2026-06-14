@@ -1,12 +1,24 @@
 import React, { useEffect, useRef } from 'react';
-import type { SceneObject } from '../../../types';
+import type { GameEngine, SceneObject } from '../../../types';
 import { useCanvasStore } from '../../store/canvasStore';
 
-const ENGINE_LABELS = {
-  threejs: 'Three.js',
+const ENGINE_LABELS: Record<GameEngine, string> = {
   'unity-webgl': 'Unity WebGL',
+  unity: 'Unity',
+  'godot-webgl': 'Godot Web',
+  godot: 'Godot',
+  threejs: 'Three.js',
   'generic-iframe': 'Game Server',
-} as const;
+};
+
+const SETUP_MESSAGES: Partial<Record<GameEngine, string>> = {
+  unity:
+    'Unity project detected. Build for WebGL, set cursorCanvas.unityWebGlPath, or run a local game server on a detected port.',
+  godot:
+    'Godot project detected. Export a Web build or run a local game server on a detected port.',
+  'generic-iframe':
+    'Start your game server to preview it here. Canvas will load localhost when a port is detected.',
+};
 
 function buildObjectMesh(
   THREE: typeof import('three'),
@@ -41,7 +53,11 @@ function buildObjectMesh(
     default:
       mesh = new THREE.Mesh(
         new THREE.BoxGeometry(0.55, 0.55, 0.55),
-        new THREE.MeshStandardMaterial({ color: 0x38bdf8 }),
+        new THREE.MeshStandardMaterial({
+          color: 0x7c6af7,
+          metalness: 0.35,
+          roughness: 0.4,
+        }),
       );
       break;
   }
@@ -80,25 +96,44 @@ const GameCanvas = React.memo(() => {
       const height = container.clientHeight || 480;
 
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x111111);
+      scene.background = new THREE.Color(0x0f0f12);
+      scene.fog = new THREE.Fog(0x0f0f12, 8, 18);
 
-      const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 100);
-      camera.position.set(0, 2.8, 5.5);
+      const camera = new THREE.PerspectiveCamera(52, width / height, 0.1, 100);
+      camera.position.set(0, 3.2, 6.2);
+      camera.lookAt(0, 0.4, 0);
 
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(width, height);
       container.replaceChildren(renderer.domElement);
 
-      scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-      const directional = new THREE.DirectionalLight(0xffffff, 1.1);
-      directional.position.set(4, 6, 5);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+      const directional = new THREE.DirectionalLight(0xffffff, 1.2);
+      directional.position.set(4, 8, 5);
       scene.add(directional);
+
+      const accentLight = new THREE.PointLight(0x7c6af7, 1.4, 20);
+      accentLight.position.set(-3, 2, 2);
+      scene.add(accentLight);
 
       const root = new THREE.Group();
       scene.add(root);
 
-      const grid = new THREE.GridHelper(8, 8, 0x333333, 0x222222);
+      const floor = new THREE.Mesh(
+        new THREE.CircleGeometry(5.5, 64),
+        new THREE.MeshStandardMaterial({
+          color: 0x18181f,
+          metalness: 0.2,
+          roughness: 0.85,
+        }),
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -0.01;
+      root.add(floor);
+
+      const grid = new THREE.GridHelper(10, 20, 0x7c6af7, 0x2a2a35);
+      grid.position.y = 0.01;
       root.add(grid);
 
       if (sceneObjects.length === 0) {
@@ -106,7 +141,7 @@ const GameCanvas = React.memo(() => {
           new THREE.Mesh(
             new THREE.BoxGeometry(1, 1, 1),
             new THREE.MeshStandardMaterial({
-              color: 0x007acc,
+              color: 0x7c6af7,
               wireframe: true,
             }),
           ),
@@ -143,13 +178,22 @@ const GameCanvas = React.memo(() => {
     };
   }, [engine, sceneObjects]);
 
-  const showIframe =
-    (engine === 'unity-webgl' || engine === 'generic-iframe') &&
-    gamePreviewUrl;
+  const showThreeCanvas = engine === 'threejs';
+  const showIframe = !showThreeCanvas && Boolean(gamePreviewUrl);
+  const setupMessage = SETUP_MESSAGES[engine];
 
   const isLoading =
     gamePreviewStatus === 'loading' ||
-    (engine === 'threejs' && sceneObjects.length === 0);
+    (showThreeCanvas &&
+      sceneObjects.length === 0 &&
+      gamePreviewStatus !== 'ready');
+
+  const showSetupState =
+    !showIframe &&
+    !isLoading &&
+    gamePreviewStatus !== 'error' &&
+    Boolean(setupMessage) &&
+    !showThreeCanvas;
 
   return (
     <div className="relative h-full min-w-0 bg-canvas-bg">
@@ -160,7 +204,7 @@ const GameCanvas = React.memo(() => {
       {showIframe ? (
         <iframe
           title="Game preview"
-          src={gamePreviewUrl}
+          src={gamePreviewUrl ?? undefined}
           className="h-full w-full border-0 bg-black"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
         />
@@ -169,15 +213,25 @@ const GameCanvas = React.memo(() => {
           ref={containerRef}
           className={[
             'h-full w-full',
-            isLoading ? 'animate-pulse border border-dashed border-canvas-accent/40' : '',
+            showThreeCanvas && isLoading
+              ? 'animate-pulse border border-dashed border-canvas-accent/40'
+              : '',
           ].join(' ')}
         />
       )}
 
-      {isLoading && !showIframe ? (
+      {isLoading && showThreeCanvas ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="rounded bg-canvas-surface/90 px-3 py-2 text-sm text-canvas-muted">
-            Waiting for game output…
+            Waiting for scene graph…
+          </p>
+        </div>
+      ) : null}
+
+      {showSetupState ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-canvas-bg/90 p-6 text-center">
+          <p className="max-w-md text-sm leading-relaxed text-canvas-text">
+            {setupMessage}
           </p>
         </div>
       ) : null}
@@ -185,7 +239,7 @@ const GameCanvas = React.memo(() => {
       {gamePreviewStatus === 'error' ? (
         <div className="absolute inset-0 flex items-center justify-center bg-canvas-bg/90 p-6 text-center">
           <p className="text-sm text-canvas-text">
-            Engine not detected. Check your workspace.
+            Game preview unavailable. Check your workspace and settings.
           </p>
         </div>
       ) : null}

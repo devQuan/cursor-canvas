@@ -1,10 +1,21 @@
 {
   "name": "cursor-canvas",
   "displayName": "Cursor Canvas",
-  "description": "Embedded Cursor panel with live build preview for apps, games, and video",
-  "version": "0.1.0",
+  "description": "Live preview panel for apps, games, and video inside Cursor",
+  "version": "1.0.0",
   "publisher": "devQuan",
   "license": "MIT",
+  "icon": "media/icon.png",
+  "keywords": [
+    "cursor",
+    "preview",
+    "live",
+    "canvas",
+    "game",
+    "video",
+    "threejs",
+    "vite"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/devQuan/cursor-canvas"
@@ -13,7 +24,8 @@
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Visualization"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -59,6 +71,11 @@
           "type": "string",
           "default": null,
           "description": "Relative path to Unity WebGL build output folder"
+        },
+        "cursorCanvas.autoOpenPanel": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the Canvas panel automatically when a workspace loads"
         }
       }
     }
@@ -73,9 +90,10 @@
     "test:watch": "vitest",
     "test:unit": "vitest run tests/unit",
     "test:components": "vitest run tests/components",
+    "test:integration": "vitest run tests/integration",
     "vscode:prepublish": "npm run build",
     "dev:host": "/Applications/Cursor.app/Contents/Resources/app/bin/cursor --extensionDevelopmentPath=\"$PWD\" \"$PWD\"",
-    "reinstall": "npm run build && npx @vscode/vsce package && /Applications/Cursor.app/Contents/Resources/app/bin/cursor --install-extension ./cursor-canvas-0.1.0.vsix"
+    "reinstall": "npm run build && npx @vscode/vsce package && /Applications/Cursor.app/Contents/Resources/app/bin/cursor --install-extension ./cursor-canvas-1.0.0.vsix"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

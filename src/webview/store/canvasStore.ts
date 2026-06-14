@@ -12,6 +12,7 @@ import type {
   TrackMode,
   VideoPreviewStatus,
   VideoViewMode,
+  PreviewDeviceId,
 } from '../../types';
 
 interface CanvasStore {
@@ -32,6 +33,7 @@ interface CanvasStore {
   videoPreviewStatus: VideoPreviewStatus;
   generationProgress: { current: number; total: number };
   videoOutputDir: string | null;
+  previewDevice: PreviewDeviceId;
   gameViewMode: GameViewMode;
   settingsOpen: boolean;
   settings: CanvasSettings;
@@ -52,6 +54,7 @@ interface CanvasStore {
   setVideoPreviewStatus: (status: VideoPreviewStatus) => void;
   setGenerationProgress: (current: number, total: number) => void;
   setVideoOutputDir: (outputDir: string | null) => void;
+  setPreviewDevice: (device: PreviewDeviceId) => void;
   resetVideoState: () => void;
 }
 
@@ -62,6 +65,7 @@ const defaultSettings: CanvasSettings = {
   framePollingIntervalMs: 1000,
   sceneGraphPath: '.cursor-canvas/scene-graph.json',
   unityWebGlPath: null,
+  autoOpenPanel: true,
 };
 
 export const useCanvasStore = create<CanvasStore>((set) => ({
@@ -78,10 +82,11 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   sceneObjects: [],
   frames: [],
   videoUrl: null,
-  videoViewMode: 'strip',
+  videoViewMode: 'live',
   videoPreviewStatus: 'empty',
   generationProgress: { current: 0, total: 60 },
   videoOutputDir: null,
+  previewDevice: 'desktop',
   gameViewMode: 'split',
   settingsOpen: false,
   settings: defaultSettings,
@@ -137,11 +142,12 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   setGenerationProgress: (current, total) =>
     set({ generationProgress: { current, total } }),
   setVideoOutputDir: (outputDir) => set({ videoOutputDir: outputDir }),
+  setPreviewDevice: (device) => set({ previewDevice: device }),
   resetVideoState: () =>
     set((state) => ({
       frames: [],
       videoUrl: null,
-      videoViewMode: 'strip',
+      videoViewMode: 'live',
       videoPreviewStatus: 'empty',
       videoOutputDir: null,
       generationProgress: {

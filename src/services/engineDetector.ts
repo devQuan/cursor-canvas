@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { GameEngine } from '../types';
 
-const GAME_PACKAGE_DEPS = [
+const WEB_GAME_PACKAGE_DEPS = [
   'three',
   '@react-three/fiber',
   '@react-three/drei',
@@ -20,9 +20,17 @@ const UNITY_BUILD_CANDIDATES = [
   'build',
 ];
 
+const GODOT_WEB_CANDIDATES = [
+  'build/web/index.html',
+  'export/web/index.html',
+  'web/index.html',
+  'Build/Web/index.html',
+];
+
 export interface EngineDetectionResult {
   engine: GameEngine;
   unityBuildIndexPath?: string;
+  godotBuildIndexPath?: string;
 }
 
 async function pathExists(targetPath: string): Promise<boolean> {
@@ -48,13 +56,13 @@ async function readPackageJson(
   }
 }
 
-function hasThreeJsDependency(pkg: Record<string, unknown>): boolean {
+function hasWebGameDependency(pkg: Record<string, unknown>): boolean {
   const deps = {
     ...(pkg.dependencies as Record<string, string> | undefined),
     ...(pkg.devDependencies as Record<string, string> | undefined),
   };
 
-  return GAME_PACKAGE_DEPS.some((dep) => dep in deps);
+  return WEB_GAME_PACKAGE_DEPS.some((dep) => dep in deps);
 }
 
 async function findUnityWebGlIndex(
@@ -64,9 +72,11 @@ async function findUnityWebGlIndex(
   const candidates = new Set<string>();
 
   if (configuredPath) {
-    candidates.add(path.isAbsolute(configuredPath)
-      ? configuredPath
-      : path.join(workspacePath, configuredPath));
+    candidates.add(
+      path.isAbsolute(configuredPath)
+        ? configuredPath
+        : path.join(workspacePath, configuredPath),
+    );
   }
 
   for (const candidate of UNITY_BUILD_CANDIDATES) {
@@ -75,6 +85,19 @@ async function findUnityWebGlIndex(
 
   for (const buildDir of candidates) {
     const indexPath = path.join(buildDir, 'index.html');
+    if (await pathExists(indexPath)) {
+      return indexPath;
+    }
+  }
+
+  return undefined;
+}
+
+async function findGodotWebIndex(
+  workspacePath: string,
+): Promise<string | undefined> {
+  for (const candidate of GODOT_WEB_CANDIDATES) {
+    const indexPath = path.join(workspacePath, candidate);
     if (await pathExists(indexPath)) {
       return indexPath;
     }
@@ -102,11 +125,25 @@ export class EngineDetector {
         return { engine: 'unity-webgl', unityBuildIndexPath };
       }
 
-      return { engine: 'generic-iframe' };
+      return { engine: 'unity' };
+    }
+
+    const isGodotProject = await pathExists(
+      path.join(workspacePath, 'project.godot'),
+    );
+
+    if (isGodotProject) {
+      const godotBuildIndexPath = await findGodotWebIndex(workspacePath);
+
+      if (godotBuildIndexPath) {
+        return { engine: 'godot-webgl', godotBuildIndexPath };
+      }
+
+      return { engine: 'godot' };
     }
 
     const packageJson = await readPackageJson(workspacePath);
-    if (packageJson && hasThreeJsDependency(packageJson)) {
+    if (packageJson && hasWebGameDependency(packageJson)) {
       return { engine: 'threejs' };
     }
 

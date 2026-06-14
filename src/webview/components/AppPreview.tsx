@@ -1,13 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { getPreviewDevice } from '../lib/devicePresets';
 import { postToExtension } from '../hooks/useMessageBridge';
 import { useCanvasStore } from '../store/canvasStore';
 import EmptyState from './EmptyState';
+import DeviceFrame from './AppPreview/DeviceFrame';
+import DeviceSwitcher from './AppPreview/DeviceSwitcher';
 
 const AppPreview = React.memo(() => {
   const port = useCanvasStore((state) => state.port);
   const serverStatus = useCanvasStore((state) => state.serverStatus);
   const portSource = useCanvasStore((state) => state.portSource);
+  const previewDevice = useCanvasStore((state) => state.previewDevice);
   const [editablePort, setEditablePort] = useState('5173');
+
+  const device = useMemo(
+    () => getPreviewDevice(previewDevice),
+    [previewDevice],
+  );
 
   useEffect(() => {
     if (port) {
@@ -63,29 +72,33 @@ const AppPreview = React.memo(() => {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 items-center justify-between border-b border-canvas-border bg-canvas-surface px-3 py-2">
-        <label className="flex items-center gap-2 text-xs text-canvas-muted">
-          <span>Port</span>
-          <input
-            type="number"
-            min={1}
-            max={65535}
-            value={editablePort}
-            onChange={(event) => setEditablePort(event.target.value)}
-            onBlur={handlePortCommit}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                handlePortCommit();
-              }
-            }}
-            className="w-20 rounded border border-canvas-border bg-canvas-bg px-2 py-1 font-mono text-xs text-canvas-text outline-none focus:border-canvas-accent"
-          />
-          {portSource ? (
-            <span className="font-mono text-[10px] uppercase text-canvas-muted">
-              {portSource}
-            </span>
-          ) : null}
-        </label>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-canvas-border bg-canvas-surface px-3 py-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <DeviceSwitcher />
+
+          <label className="flex items-center gap-2 text-xs text-canvas-muted">
+            <span>Port</span>
+            <input
+              type="number"
+              min={1}
+              max={65535}
+              value={editablePort}
+              onChange={(event) => setEditablePort(event.target.value)}
+              onBlur={handlePortCommit}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  handlePortCommit();
+                }
+              }}
+              className="w-20 rounded border border-canvas-border bg-canvas-bg px-2 py-1 font-mono text-xs text-canvas-text outline-none focus:border-canvas-accent"
+            />
+            {portSource ? (
+              <span className="font-mono text-[10px] uppercase text-canvas-muted">
+                {portSource}
+              </span>
+            ) : null}
+          </label>
+        </div>
 
         <div className="flex items-center gap-2">
           <button
@@ -106,7 +119,7 @@ const AppPreview = React.memo(() => {
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 bg-canvas-bg">
+      <div className="relative min-h-0 flex-1 bg-[radial-gradient(ellipse_at_top,_rgba(124,106,247,0.12)_0%,_var(--canvas-bg)_52%)]">
         {serverStatus === 'starting' && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-canvas-bg/90">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-canvas-border border-t-canvas-accent" />
@@ -130,12 +143,7 @@ const AppPreview = React.memo(() => {
         )}
 
         {previewUrl && serverStatus === 'ready' ? (
-          <iframe
-            title="App preview"
-            src={previewUrl}
-            className="h-full w-full border-0 bg-white"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-          />
+          <DeviceFrame device={device} previewUrl={previewUrl} />
         ) : null}
       </div>
     </div>

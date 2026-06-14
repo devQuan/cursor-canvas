@@ -41,6 +41,47 @@ describe('EngineDetector', () => {
     }
   });
 
+  it("detects 'unity' when Unity project exists without a WebGL build", async () => {
+    const workspace = await createTempWorkspace('engine-unity-project-');
+
+    try {
+      await writeFile(workspace, 'ProjectSettings/ProjectVersion.txt', '6000');
+
+      const result = await detector.detect(workspace);
+      expect(result.engine).toBe('unity');
+    } finally {
+      await removeTempWorkspace(workspace);
+    }
+  });
+
+  it("detects 'godot-webgl' when Godot project and web export exist", async () => {
+    const workspace = await createTempWorkspace('engine-godot-web-');
+
+    try {
+      await writeFile(workspace, 'project.godot', '[application]\n');
+      await writeFile(workspace, 'build/web/index.html', '<html></html>');
+
+      const result = await detector.detect(workspace);
+      expect(result.engine).toBe('godot-webgl');
+      expect(result.godotBuildIndexPath).toContain('build/web/index.html');
+    } finally {
+      await removeTempWorkspace(workspace);
+    }
+  });
+
+  it("detects 'godot' when Godot project exists without a web export", async () => {
+    const workspace = await createTempWorkspace('engine-godot-project-');
+
+    try {
+      await writeFile(workspace, 'project.godot', '[application]\n');
+
+      const result = await detector.detect(workspace);
+      expect(result.engine).toBe('godot');
+    } finally {
+      await removeTempWorkspace(workspace);
+    }
+  });
+
   it("falls back to 'generic-iframe' when nothing matches", async () => {
     const workspace = await createTempWorkspace('engine-generic-');
 

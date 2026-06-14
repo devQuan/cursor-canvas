@@ -4,9 +4,11 @@ import { GamePreviewService } from './services/gamePreviewService';
 import { MessageBridge } from './services/messageBridge';
 import { TrackDetectionService } from './services/trackDetectionService';
 import { VideoPreviewService } from './services/videoPreviewService';
+import { shouldAutoOpenPanel } from './services/panelAutoOpen';
 import type { CanvasSettings } from './types';
 
 const PANEL_VIEW_TYPE = 'cursorCanvas.panel';
+const PANEL_CLOSED_BY_USER_KEY = 'cursorCanvas.panelClosedByUser';
 
 let activePanel: vscode.WebviewPanel | undefined;
 let trackDetectionService: TrackDetectionService | undefined;
@@ -36,6 +38,7 @@ function getDefaultSettings(): CanvasSettings {
     sceneGraphPath:
       config.get<string>('sceneGraphPath') ?? '.cursor-canvas/scene-graph.json',
     unityWebGlPath: config.get<string | null>('unityWebGlPath') ?? null,
+    autoOpenPanel: config.get<boolean>('autoOpenPanel') ?? true,
   };
 }
 
@@ -183,6 +186,13 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
             message.settings.unityWebGlPath,
             vscode.ConfigurationTarget.Workspace,
           );
+        void vscode.workspace
+          .getConfiguration('cursorCanvas')
+          .update(
+            'autoOpenPanel',
+            message.settings.autoOpenPanel,
+            vscode.ConfigurationTarget.Workspace,
+          );
         messageBridge.send(panel, {
           type: 'SETTINGS_UPDATED',
           settings: message.settings,
@@ -210,25 +220,61 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
     gamePreviewService = undefined;
     videoPreviewService = undefined;
     activePanel = undefined;
+    void context.workspaceState.update(PANEL_CLOSED_BY_USER_KEY, true);
   });
 
   return panel;
+}
+
+function openCanvasPanel(context: vscode.ExtensionContext): void {
+  void context.workspaceState.update(PANEL_CLOSED_BY_USER_KEY, false);
+
+  if (activePanel) {
+    activePanel.reveal(vscode.ViewColumn.Beside);
+    return;
+  }
+
+  activePanel = createPanel(context);
+}
+
+function tryAutoOpenPanel(context: vscode.ExtensionContext): void {
+  const config = vscode.workspace.getConfiguration('cursorCanvas');
+  const closedByUser =
+    context.workspaceState.get<boolean>(PANEL_CLOSED_BY_USER_KEY) ?? false;
+
+  if (
+    !shouldAutoOpenPanel({
+      autoOpenEnabled: config.get<boolean>('autoOpenPanel') ?? true,
+      hasWorkspace: (vscode.workspace.workspaceFolders?.length ?? 0) > 0,
+      closedByUser,
+      panelAlreadyOpen: Boolean(activePanel),
+    })
+  ) {
+    return;
+  }
+
+  openCanvasPanel(context);
 }
 
 export function activate(context: vscode.ExtensionContext): void {
   const openPanelCommand = vscode.commands.registerCommand(
     'cursorCanvas.openPanel',
     () => {
-      if (activePanel) {
-        activePanel.reveal(vscode.ViewColumn.Beside);
-        return;
-      }
-
-      activePanel = createPanel(context);
+      openCanvasPanel(context);
     },
   );
 
   context.subscriptions.push(openPanelCommand);
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      tryAutoOpenPanel(context);
+    }),
+  );
+
+  setTimeout(() => {
+    tryAutoOpenPanel(context);
+  }, 500);
 }
 
 export function deactivate(): void {

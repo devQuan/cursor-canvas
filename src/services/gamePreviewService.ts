@@ -1,13 +1,11 @@
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { EngineDetector } from './engineDetector';
 import { FileWatcher } from './fileWatcher';
 import { MessageBridge } from './messageBridge';
 import { PortDetector } from './portDetector';
+import { resolveSceneGraphPath } from './sceneGraphResolver';
 import type { GameEngine, SceneObject, Track } from '../types';
-
-const DEFAULT_SCENE_GRAPH_PATH = '.cursor-canvas/scene-graph.json';
 
 export class GamePreviewService {
   private readonly engineDetector = new EngineDetector();
@@ -16,6 +14,7 @@ export class GamePreviewService {
   private readonly bridge = new MessageBridge();
   private sceneGraphDisposable: vscode.Disposable | undefined;
   private activeEngine: GameEngine | null = null;
+  private activeSceneGraphPath: string | null = null;
   private isActive = false;
 
   async onTrackChanged(
@@ -50,8 +49,11 @@ export class GamePreviewService {
   private async start(panel: vscode.WebviewPanel): Promise<void> {
     this.stop();
 
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) {
+    const workspaceRoots =
+      vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ??
+      [];
+
+    if (workspaceRoots.length === 0) {
       this.bridge.send(panel, {
         type: 'ERROR',
         service: 'engineDetector',
@@ -63,38 +65,35 @@ export class GamePreviewService {
 
     const config = vscode.workspace.getConfiguration('cursorCanvas');
     const unityWebGlPath = config.get<string | null>('unityWebGlPath') ?? null;
-    const sceneGraphPath =
-      config.get<string>('sceneGraphPath') ?? DEFAULT_SCENE_GRAPH_PATH;
+    const sceneGraphPathSetting = config.get<string>('sceneGraphPath') ?? null;
     const portOverride = config.get<number | null>('portOverride') ?? null;
+    const primaryRoot = workspaceRoots[0];
 
     try {
       const detection = await this.engineDetector.detect(
-        workspaceFolder.uri.fsPath,
+        primaryRoot,
         unityWebGlPath,
       );
       this.activeEngine = detection.engine;
 
       if (detection.engine === 'unity-webgl' && detection.unityBuildIndexPath) {
-        const previewUri = panel.webview.asWebviewUri(
-          vscode.Uri.file(detection.unityBuildIndexPath),
-        );
-        this.bridge.send(panel, {
-          type: 'ENGINE_DETECTED',
-          engine: detection.engine,
-          previewUrl: previewUri.toString(),
-        });
-      } else if (detection.engine === 'generic-iframe') {
-        const detectedPort = await this.portDetector.detect(
-          workspaceFolder.uri.fsPath,
+        this.sendWebBuildPreview(panel, detection.engine, detection.unityBuildIndexPath);
+      } else if (
+        detection.engine === 'godot-webgl' &&
+        detection.godotBuildIndexPath
+      ) {
+        this.sendWebBuildPreview(panel, detection.engine, detection.godotBuildIndexPath);
+      } else if (
+        detection.engine === 'unity' ||
+        detection.engine === 'godot' ||
+        detection.engine === 'generic-iframe'
+      ) {
+        await this.sendRuntimePreview(
+          panel,
+          detection.engine,
+          primaryRoot,
           portOverride,
         );
-        const port = detectedPort?.port ?? portOverride ?? 5173;
-        this.bridge.send(panel, {
-          type: 'ENGINE_DETECTED',
-          engine: detection.engine,
-          port,
-          previewUrl: `http://localhost:${port}`,
-        });
       } else {
         this.bridge.send(panel, {
           type: 'ENGINE_DETECTED',
@@ -102,17 +101,7 @@ export class GamePreviewService {
         });
       }
 
-      await this.loadSceneGraph(panel, workspaceFolder.uri.fsPath, sceneGraphPath);
-      this.sceneGraphDisposable = this.fileWatcher.watchSceneGraph(
-        path.join(workspaceFolder.uri.fsPath, sceneGraphPath),
-        () => {
-          void this.loadSceneGraph(
-            panel,
-            workspaceFolder.uri.fsPath,
-            sceneGraphPath,
-          );
-        },
-      );
+      await this.watchSceneGraph(panel, workspaceRoots, sceneGraphPathSetting);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Game preview failed to start';
@@ -125,26 +114,96 @@ export class GamePreviewService {
     }
   }
 
+  private sendWebBuildPreview(
+    panel: vscode.WebviewPanel,
+    engine: GameEngine,
+    buildIndexPath: string,
+  ): void {
+    const previewUri = panel.webview.asWebviewUri(
+      vscode.Uri.file(buildIndexPath),
+    );
+    this.bridge.send(panel, {
+      type: 'ENGINE_DETECTED',
+      engine,
+      previewUrl: previewUri.toString(),
+    });
+  }
+
+  private async sendRuntimePreview(
+    panel: vscode.WebviewPanel,
+    engine: GameEngine,
+    workspacePath: string,
+    portOverride: number | null,
+  ): Promise<void> {
+    const detectedPort = await this.portDetector.detect(
+      workspacePath,
+      portOverride,
+    );
+    const port = detectedPort?.port ?? portOverride ?? null;
+
+    if (port) {
+      this.bridge.send(panel, {
+        type: 'ENGINE_DETECTED',
+        engine,
+        port,
+        previewUrl: `http://localhost:${port}`,
+      });
+      return;
+    }
+
+    this.bridge.send(panel, {
+      type: 'ENGINE_DETECTED',
+      engine,
+    });
+  }
+
+  private async watchSceneGraph(
+    panel: vscode.WebviewPanel,
+    workspaceRoots: string[],
+    sceneGraphPathSetting: string | null,
+  ): Promise<void> {
+    this.activeSceneGraphPath = await resolveSceneGraphPath(
+      workspaceRoots,
+      sceneGraphPathSetting,
+    );
+
+    if (!this.activeSceneGraphPath) {
+      this.bridge.send(panel, {
+        type: 'SCENE_UPDATED',
+        objects: [],
+        engine: this.activeEngine ?? 'generic-iframe',
+      });
+      return;
+    }
+
+    await this.loadSceneGraph(panel, this.activeSceneGraphPath);
+    this.sceneGraphDisposable = this.fileWatcher.watchSceneGraph(
+      this.activeSceneGraphPath,
+      () => {
+        if (this.activeSceneGraphPath) {
+          void this.loadSceneGraph(panel, this.activeSceneGraphPath);
+        }
+      },
+    );
+  }
+
   private async loadSceneGraph(
     panel: vscode.WebviewPanel,
-    workspacePath: string,
-    sceneGraphPath: string,
+    absolutePath: string,
   ): Promise<void> {
-    const absolutePath = path.join(workspacePath, sceneGraphPath);
-
     try {
       const raw = await fs.readFile(absolutePath, 'utf8');
       const objects = parseSceneGraph(raw);
       this.bridge.send(panel, {
         type: 'SCENE_UPDATED',
         objects,
-        engine: this.activeEngine ?? 'threejs',
+        engine: this.activeEngine ?? 'generic-iframe',
       });
     } catch {
       this.bridge.send(panel, {
         type: 'SCENE_UPDATED',
         objects: [],
-        engine: this.activeEngine ?? 'threejs',
+        engine: this.activeEngine ?? 'generic-iframe',
       });
     }
   }
@@ -153,6 +212,7 @@ export class GamePreviewService {
     this.sceneGraphDisposable?.dispose();
     this.sceneGraphDisposable = undefined;
     this.activeEngine = null;
+    this.activeSceneGraphPath = null;
   }
 }
 

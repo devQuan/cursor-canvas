@@ -115,6 +115,10 @@ async function hasGameMarkers(workspacePath: string): Promise<boolean> {
     return true;
   }
 
+  if (await pathExists(path.join(workspacePath, 'project.godot'))) {
+    return true;
+  }
+
   if (await directoryHasExtension(workspacePath, '.rbxl', 1)) {
     return true;
   }

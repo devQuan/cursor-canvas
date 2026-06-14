@@ -57,6 +57,26 @@ const SettingsPanel = React.memo(() => {
         <div className="max-h-[60vh] space-y-3 overflow-y-auto text-sm">
           <fieldset className="space-y-3 border-0 p-0">
             <legend className="mb-2 text-xs font-medium uppercase tracking-wide text-canvas-muted">
+              Panel
+            </legend>
+
+            <label className="flex items-center gap-2 text-canvas-text">
+              <input
+                type="checkbox"
+                checked={draft.autoOpenPanel}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    autoOpenPanel: event.target.checked,
+                  })
+                }
+              />
+              <span>Open Canvas automatically when a workspace loads</span>
+            </label>
+          </fieldset>
+
+          <fieldset className="space-y-3 border-0 border-t border-canvas-border p-0 pt-3">
+            <legend className="mb-2 text-xs font-medium uppercase tracking-wide text-canvas-muted">
               Video
             </legend>
 

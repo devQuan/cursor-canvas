@@ -7,29 +7,53 @@
       "visible": true
     },
     {
-      "id": "light-1",
+      "id": "sun",
       "name": "Key Light",
       "type": "light",
       "visible": true
     },
     {
-      "id": "mesh-1",
-      "name": "Player",
+      "id": "fill",
+      "name": "Fill Light",
+      "type": "light",
+      "visible": true
+    },
+    {
+      "id": "player",
+      "name": "Player Ship",
       "type": "mesh",
       "visible": true
     },
     {
-      "id": "mesh-2",
-      "name": "Ground",
+      "id": "enemy-a",
+      "name": "Enemy Drone A",
       "type": "mesh",
       "visible": true
     },
     {
-      "id": "group-1",
-      "name": "Environment",
+      "id": "enemy-b",
+      "name": "Enemy Drone B",
+      "type": "mesh",
+      "visible": true
+    },
+    {
+      "id": "platform",
+      "name": "Landing Pad",
+      "type": "mesh",
+      "visible": true
+    },
+    {
+      "id": "tower",
+      "name": "Beacon Tower",
+      "type": "mesh",
+      "visible": true
+    },
+    {
+      "id": "world",
+      "name": "World Root",
       "type": "group",
       "visible": true,
-      "children": ["mesh-2"]
+      "children": ["platform", "tower"]
     }
   ]
 }

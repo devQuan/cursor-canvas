@@ -171,6 +171,7 @@ export class VideoPreviewService {
       sceneGraphPath:
         config.get<string>('sceneGraphPath') ?? '.cursor-canvas/scene-graph.json',
       unityWebGlPath: config.get<string | null>('unityWebGlPath') ?? null,
+      autoOpenPanel: config.get<boolean>('autoOpenPanel') ?? true,
     };
   }
 

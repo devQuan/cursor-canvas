@@ -8,6 +8,7 @@ const defaultSettings: CanvasSettings = {
   framePollingIntervalMs: 1000,
   sceneGraphPath: '.cursor-canvas/scene-graph.json',
   unityWebGlPath: null,
+  autoOpenPanel: true,
 };
 
 export function resetCanvasStore(): void {
@@ -25,10 +26,11 @@ export function resetCanvasStore(): void {
     sceneObjects: [],
     frames: [],
     videoUrl: null,
-    videoViewMode: 'strip',
+    videoViewMode: 'live',
     videoPreviewStatus: 'empty',
     generationProgress: { current: 0, total: 60 },
     videoOutputDir: null,
+    previewDevice: 'desktop',
     gameViewMode: 'split',
     settingsOpen: false,
     settings: defaultSettings,

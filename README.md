@@ -1,55 +1,87 @@
-# Cursor Canvas — Docs Index
+# Cursor Canvas
 
-**GitHub:** https://github.com/devQuan/cursor-canvas
+Live preview panel for Cursor — see your app, game, or video build in real time inside the editor.
+
+**GitHub:** https://github.com/devQuan/cursor-canvas  
 **Publisher:** devQuan
 
-An embedded Cursor extension panel that auto-detects your active build track (App / Game / Video) and renders a live preview of what's being built in real time. Manual override always available.
+---
+
+## Features
+
+| Mode | What you get |
+|------|----------------|
+| **App** | Live localhost iframe, port auto-detection, device frames (Web / iPhone / Android / iPad) |
+| **Game** | Three.js canvas + scene graph panel; Unity WebGL and generic iframe support |
+| **Video** | One large live preview while rendering → full video player when output lands |
+
+Auto-detection picks the track from your workspace. Override manually when needed.
 
 ---
 
-## Build Order
+## Install
 
-Read and act on these documents in number order. Each one unlocks the next.
+### From VSIX (local)
 
-| # | File | What it covers |
-|---|------|----------------|
-| 00 | [Lifecycle Roadmap](./00-lifecycle-roadmap.md) | Full 8-phase build plan, layer order, QA baked in |
-| 01 | [PRD](./01-prd.md) | What it is, who it's for, success metrics, MVP scope |
-| 02 | [User Personas & Stories](./02-user-personas-and-stories.md) | Who uses this and what they need |
-| 03 | [UX/UI Design Plan](./03-ux-ui-design-plan.md) | Panel layout, component breakdown, design system |
-| 04 | [Software Architecture](./04-software-architecture-sad.md) | Full stack, data flow, extension API, build layers |
-| 05 | [API & Event Documentation](./05-api-and-events.md) | Internal event contracts, message bus, panel API |
-| 06 | [Coding Standards](./06-coding-standards.md) | Style guide, naming, branch/commit conventions |
-| 07 | [QA & Test Plan](./07-qa-test-plan.md) | Test cases, manual/automated strategy |
-| 08 | [Debugging & Observability](./08-debugging-and-observability.md) | Error handling, logging, triage process |
-| 09 | [Launch & Distribution](./09-launch-and-distribution.md) | VS Code Marketplace checklist, versioning, release |
-| 10 | [Privacy Policy](./10-privacy-policy.md) | Required for Marketplace listing |
-| 11 | [Terms of Service](./11-terms-of-service.md) | Legal terms for end users |
+```bash
+git clone https://github.com/devQuan/cursor-canvas.git
+cd cursor-canvas
+npm install
+npm run reinstall
+```
+
+Then **Developer: Reload Window** in Cursor.
+
+### From Marketplace
+
+Search **Cursor Canvas** in the Extensions panel (coming soon).
 
 ---
 
-## Non-Negotiable Core
+## Usage
 
-If you trim the set, keep these:
-- `00` — Lifecycle Roadmap
-- `01` — PRD
-- `04` — Software Architecture
-- `07` — QA & Test Plan
-- `08` — Debugging & Observability
+1. Open a project in Cursor
+2. `Cmd+Shift+P` → **Open Canvas Panel**
+3. Use **app** / **game** / **video** tabs
+4. On **App**, try the device switcher to check responsive layouts
 
 ---
 
-## Tech Stack at a Glance
+## Configuration
 
-| Layer | Technology |
-|---|---|
-| Extension runtime | VS Code Extension API (Cursor compatible) |
-| Panel UI | React 18 + TypeScript + Tailwind CSS |
-| State management | Zustand |
-| File watching | chokidar |
-| App preview | iframe + localhost port detector |
-| Game preview | Three.js canvas embed + scene panel |
-| Video preview | Polling output dir + HTML5 video player |
-| Build tool | esbuild (fast, extension-friendly) |
-| Testing | Vitest + React Testing Library + Playwright |
-| Linting | ESLint + Prettier |
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `cursorCanvas.outputFolder` | `null` | Video output folder to watch for frames |
+| `cursorCanvas.estimatedFrameCount` | `60` | Progress bar total frame estimate |
+| `cursorCanvas.portOverride` | `null` | Force a specific dev server port |
+| `cursorCanvas.framePollingIntervalMs` | `1000` | Video output polling interval |
+| `cursorCanvas.sceneGraphPath` | `.cursor-canvas/scene-graph.json` | Game scene graph JSON path |
+| `cursorCanvas.unityWebGlPath` | `null` | Unity WebGL build output folder |
+| `cursorCanvas.autoOpenPanel` | `true` | Open Canvas when a workspace loads |
+
+---
+
+## Development
+
+```bash
+npm run build        # compile extension + webview
+npm test             # Vitest unit, component, integration tests
+npm run lint         # ESLint
+npm run typecheck    # TypeScript
+```
+
+---
+
+## Project docs
+
+Full lifecycle, architecture, and QA docs live in [`docs/`](./docs/):
+
+- [Lifecycle roadmap](./docs/00-lifecycle-roadmap.md)
+- [QA test plan](./docs/07-qa-test-plan.md)
+- [Launch checklist](./docs/09-launch-and-distribution.md)
+
+---
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

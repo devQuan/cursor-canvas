@@ -4,7 +4,6 @@ import { useCanvasStore } from '../../store/canvasStore';
 
 const VideoPlayer = React.memo(() => {
   const videoUrl = useCanvasStore((state) => state.videoUrl);
-  const setVideoViewMode = useCanvasStore((state) => state.setVideoViewMode);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -13,9 +12,12 @@ const VideoPlayer = React.memo(() => {
       return;
     }
 
-    void video.play().catch(() => {
-      // Autoplay may be blocked until user interacts with the panel.
-    });
+    const playResult = video.play();
+    if (playResult && typeof playResult.catch === 'function') {
+      void playResult.catch(() => {
+        // Autoplay may be blocked until user interacts with the panel.
+      });
+    }
   }, [videoUrl]);
 
   if (!videoUrl) {
@@ -23,26 +25,23 @@ const VideoPlayer = React.memo(() => {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex min-h-0 flex-1 items-center justify-center bg-black/40 p-4">
+    <div className="relative flex h-full flex-col bg-black">
+      <div className="absolute left-3 top-3 z-10 rounded-full border border-canvas-border bg-canvas-surface/90 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-canvas-muted">
+        Final video
+      </div>
+
+      <div className="flex min-h-0 flex-1 items-center justify-center">
         <video
           ref={videoRef}
           src={videoUrl}
           controls
           autoPlay
           playsInline
-          className="max-h-full max-w-full rounded shadow-lg"
+          className="h-full w-full object-contain"
         />
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-canvas-border px-3 py-2">
-        <button
-          type="button"
-          onClick={() => setVideoViewMode('strip')}
-          className="rounded border border-canvas-border px-3 py-1 text-xs hover:bg-canvas-border/40"
-        >
-          Show Frames
-        </button>
+      <div className="flex shrink-0 items-center justify-end border-t border-canvas-border/60 bg-canvas-surface/95 px-3 py-2">
         <button
           type="button"
           onClick={() => postToExtension({ type: 'OPEN_OUTPUT_FILE' })}

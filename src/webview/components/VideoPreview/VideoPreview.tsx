@@ -2,9 +2,8 @@ import React from 'react';
 import { postToExtension } from '../../hooks/useMessageBridge';
 import { useCanvasStore } from '../../store/canvasStore';
 import EmptyState from '../EmptyState';
-import FrameStrip from './FrameStrip';
-import ProgressBar from './ProgressBar';
 import VideoPlayer from './VideoPlayer';
+import VideoStage from './VideoStage';
 
 function shortenPath(fullPath: string): string {
   const parts = fullPath.split(/[/\\]/);
@@ -18,12 +17,10 @@ function shortenPath(fullPath: string): string {
 const VideoPreview = React.memo(() => {
   const frames = useCanvasStore((state) => state.frames);
   const videoUrl = useCanvasStore((state) => state.videoUrl);
-  const videoViewMode = useCanvasStore((state) => state.videoViewMode);
   const videoPreviewStatus = useCanvasStore((state) => state.videoPreviewStatus);
   const videoOutputDir = useCanvasStore((state) => state.videoOutputDir);
   const setSettingsOpen = useCanvasStore((state) => state.setSettingsOpen);
 
-  const showPlayer = videoViewMode === 'player' && Boolean(videoUrl);
   const isEmpty =
     frames.length === 0 && !videoUrl && videoPreviewStatus === 'empty';
 
@@ -38,8 +35,8 @@ const VideoPreview = React.memo(() => {
 
     return (
       <EmptyState
-        title="No frames yet"
-        description={`Drop frame_0001.png files into your output folder, or configure a custom path in settings. ${pathHint}`}
+        title="No video yet"
+        description={`Output will appear here as a single live preview when frames or a video file land in your folder. ${pathHint}`}
         action={{ label: 'Refresh', onClick: refresh }}
       />
     );
@@ -53,7 +50,7 @@ const VideoPreview = React.memo(() => {
     return (
       <EmptyState
         title="Output folder not found"
-        description={`No frames detected.${pathHint} Check settings and try again.`}
+        description={`No video output detected.${pathHint} Check settings and try again.`}
         variant="error"
         action={{
           label: 'Open settings',
@@ -63,18 +60,11 @@ const VideoPreview = React.memo(() => {
     );
   }
 
-  if (showPlayer) {
+  if (videoUrl) {
     return <VideoPlayer />;
   }
 
-  return (
-    <div className="flex h-full flex-col">
-      <ProgressBar />
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <FrameStrip />
-      </div>
-    </div>
-  );
+  return <VideoStage />;
 });
 
 VideoPreview.displayName = 'VideoPreview';
