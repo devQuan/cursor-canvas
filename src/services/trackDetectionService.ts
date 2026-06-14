@@ -16,6 +16,17 @@ export class TrackDetectionService {
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
+  setTrackChangeListener(
+    listener: (panel: vscode.WebviewPanel, track: Track) => void,
+  ): void {
+    this.onTrackChanged = listener;
+  }
+
+  private onTrackChanged?: (
+    panel: vscode.WebviewPanel,
+    track: Track,
+  ) => void;
+
   start(panel: vscode.WebviewPanel): void {
     this.workspaceWatchDisposable?.dispose();
 
@@ -136,6 +147,7 @@ export class TrackDetectionService {
       mode,
       confidence,
     });
+    this.onTrackChanged?.(panel, track);
   }
 
   private async handleAmbiguous(panel: vscode.WebviewPanel): Promise<void> {

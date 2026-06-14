@@ -17,6 +17,7 @@ interface CanvasStore {
   trackConfidence: TrackConfidence;
   bridgeStatus: string | null;
   port: number | null;
+  portSource: 'config' | 'scan' | null;
   serverStatus: ServerStatus;
   engine: GameEngine;
   sceneObjects: SceneObject[];
@@ -28,7 +29,7 @@ interface CanvasStore {
   settings: CanvasSettings;
   setTrack: (track: Track, mode: TrackMode, confidence?: TrackConfidence) => void;
   setBridgeStatus: (status: string | null) => void;
-  setPort: (port: number | null) => void;
+  setPort: (port: number | null, source?: 'config' | 'scan' | null) => void;
   setServerStatus: (status: ServerStatus) => void;
   setEngine: (engine: GameEngine) => void;
   setSceneObjects: (objects: SceneObject[]) => void;
@@ -50,6 +51,7 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   trackConfidence: 'high',
   bridgeStatus: null,
   port: null,
+  portSource: null,
   serverStatus: 'starting',
   engine: 'threejs',
   sceneObjects: [],
@@ -62,7 +64,7 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   setTrack: (track, mode, confidence = 'high') =>
     set({ activeTrack: track, trackMode: mode, trackConfidence: confidence }),
   setBridgeStatus: (status) => set({ bridgeStatus: status }),
-  setPort: (port) => set({ port }),
+  setPort: (port, source = null) => set({ port, portSource: source }),
   setServerStatus: (status) => set({ serverStatus: status }),
   setEngine: (engine) => set({ engine }),
   setSceneObjects: (objects) => set({ sceneObjects: objects }),

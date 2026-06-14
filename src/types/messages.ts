@@ -66,7 +66,8 @@ export type WebviewToExtensionMessage =
   | { type: 'RESET_TO_AUTO' }
   | { type: 'REQUEST_REFRESH' }
   | { type: 'SAVE_SETTINGS'; settings: CanvasSettings }
-  | { type: 'PANEL_READY' };
+  | { type: 'PANEL_READY' }
+  | { type: 'OPEN_IN_BROWSER'; port: number };
 
 export type PanelMessage = ExtensionToWebviewMessage | WebviewToExtensionMessage;
 
@@ -83,6 +84,7 @@ export function isWebviewToExtensionMessage(
     type === 'RESET_TO_AUTO' ||
     type === 'REQUEST_REFRESH' ||
     type === 'SAVE_SETTINGS' ||
-    type === 'PANEL_READY'
+    type === 'PANEL_READY' ||
+    type === 'OPEN_IN_BROWSER'
   );
 }

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { AppPreviewService } from './services/appPreviewService';
 import { MessageBridge } from './services/messageBridge';
 import { TrackDetectionService } from './services/trackDetectionService';
 import type { CanvasSettings } from './types';
@@ -7,6 +8,7 @@ const PANEL_VIEW_TYPE = 'cursorCanvas.panel';
 
 let activePanel: vscode.WebviewPanel | undefined;
 let trackDetectionService: TrackDetectionService | undefined;
+let appPreviewService: AppPreviewService | undefined;
 const messageBridge = new MessageBridge();
 
 function getNonce(): string {
@@ -46,9 +48,9 @@ function getWebviewHtml(
     `default-src 'none'`,
     `script-src 'nonce-${nonce}' 'unsafe-eval'`,
     `style-src ${webview.cspSource} 'nonce-${nonce}' 'unsafe-inline'`,
-    `img-src ${webview.cspSource} http://localhost:* data: blob:`,
+    `img-src ${webview.cspSource} http://localhost:* http://127.0.0.1:* data: blob:`,
     `frame-src http://localhost:* http://127.0.0.1:*`,
-    `connect-src http://localhost:* ws://localhost:*`,
+    `connect-src http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*`,
   ].join('; ');
 
   return `<!DOCTYPE html>
@@ -69,7 +71,14 @@ function getWebviewHtml(
 
 function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
   trackDetectionService?.dispose();
+  appPreviewService?.dispose();
+
   trackDetectionService = new TrackDetectionService(context);
+  appPreviewService = new AppPreviewService();
+
+  trackDetectionService.setTrackChangeListener((panel, track) => {
+    void appPreviewService?.onTrackChanged(panel, track);
+  });
 
   const panel = vscode.window.createWebviewPanel(
     PANEL_VIEW_TYPE,
@@ -97,6 +106,7 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
         break;
       case 'REQUEST_REFRESH':
         void trackDetectionService?.runAutoDetect(panel);
+        void appPreviewService?.refresh(panel);
         vscode.window.showInformationMessage('Cursor Canvas: refreshed');
         break;
       case 'OVERRIDE_TRACK':
@@ -104,6 +114,9 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
         break;
       case 'RESET_TO_AUTO':
         void trackDetectionService?.clearManualOverride(panel);
+        break;
+      case 'OPEN_IN_BROWSER':
+        void appPreviewService?.openInBrowser(message.port);
         break;
       case 'SAVE_SETTINGS':
         void vscode.workspace
@@ -113,11 +126,18 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
             message.settings.outputFolder,
             vscode.ConfigurationTarget.Workspace,
           );
+        void vscode.workspace
+          .getConfiguration('cursorCanvas')
+          .update(
+            'portOverride',
+            message.settings.portOverride,
+            vscode.ConfigurationTarget.Workspace,
+          );
         messageBridge.send(panel, {
           type: 'SETTINGS_UPDATED',
           settings: message.settings,
         });
-        void trackDetectionService?.runAutoDetect(panel);
+        void appPreviewService?.refresh(panel);
         break;
       default:
         if (process.env.NODE_ENV === 'development') {
@@ -130,7 +150,9 @@ function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
   panel.onDidDispose(() => {
     messageDisposable.dispose();
     trackDetectionService?.dispose();
+    appPreviewService?.dispose();
     trackDetectionService = undefined;
+    appPreviewService = undefined;
     activePanel = undefined;
   });
 
@@ -155,7 +177,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {
   trackDetectionService?.dispose();
+  appPreviewService?.dispose();
   trackDetectionService = undefined;
+  appPreviewService = undefined;
   activePanel?.dispose();
   activePanel = undefined;
 }

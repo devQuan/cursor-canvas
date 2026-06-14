@@ -21,10 +21,11 @@ function handleExtensionMessage(message: ExtensionToWebviewMessage): void {
       store.setTrack(message.track, message.mode, message.confidence ?? 'high');
       break;
     case 'PORT_DETECTED':
-      store.setPort(message.port);
+      store.setPort(message.port, message.source);
       break;
     case 'SERVER_STATUS':
       store.setServerStatus(message.status);
+      store.setPort(message.port, store.portSource);
       break;
     case 'ENGINE_DETECTED':
       store.setEngine(message.engine);
