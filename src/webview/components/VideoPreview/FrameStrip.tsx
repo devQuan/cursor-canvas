@@ -20,10 +20,14 @@ const FrameStrip = React.memo(() => {
       return;
     }
 
-    container.scrollTo({
-      left: container.scrollWidth,
-      behavior: 'smooth',
-    });
+    if (typeof container.scrollTo === 'function') {
+      container.scrollTo({
+        left: container.scrollWidth,
+        behavior: 'smooth',
+      });
+    } else {
+      container.scrollLeft = container.scrollWidth;
+    }
   }, [frames.length]);
 
   if (frames.length === 0) {
